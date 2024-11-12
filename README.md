@@ -22,18 +22,20 @@ This project depends on the `conda` environment. You can download the `yml` file
 
 3. 激活环境:
    Activate the environment:
+   ```bash
    conda activate ST-deconv
 
 ### 快速开始 | Quick Start
 
-1.	在 options 等处修改您的计算机相关路径设置。
-Modify your computer’s file path in options and other relevant files.
-2.	运行主脚本 run_scripts.py 来执行项目的主流程：
-Run the main script run_scripts.py to execute the project workflow:
+1.	在 `options.py` 等处修改您的计算机相关路径设置。
+Modify your computer’s file path in `options.py` and other relevant files.
+2.	运行主脚本 `run_scripts.py` 来执行项目的主流程：
+Run the main script `run_scripts.py` to execute the project workflow:
+      ```bash 
+      python -m ST-deconv.run.run_scripts.py
 
-python -m ST-deconv.run.run_scripts.py
-
-目录结构 | Directory Structure
+### 目录结构 | Directory Structure
+```bash
 ST-deconv
 ├── data
 │   ├── MOB                # 实验使用的 MOB 数据 | MOB data used in the experiment
@@ -54,4 +56,5 @@ ST-deconv
 │   ├── result_analyze.py  # 结果数据统计 | Result data analysis
 │   ├── result_analyze01.py # 结果数据统计（扩展）| Extended result data analysis
 │   └── utils.py           # 通用工具函数 | Utility functions
+└── options.py             # 各种环境变量 | Configuration for environment variables
 └── dataset_config.py      # 数据格式简单处理 | Basic data formatting
