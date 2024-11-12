@@ -20,19 +20,18 @@ This project depends on the `conda` environment. You can download the `yml` file
    ```bash
    conda env create -f ST-deconv-environment.yml
 
-3.	激活环境：
-   Activate the environment:
-   ```bash
-   conda activate ST-deconv
+	3.	激活环境：
+Activate the environment:
+conda activate ST-deconv
 
-快速开始 | Quick Start
+### 快速开始 | Quick Start
 
-	1.	在 options 等处修改您的计算机相关路径设置。
+1.	在 options 等处修改您的计算机相关路径设置。
 Modify your computer’s file path in options and other relevant files.
-	2.	运行主脚本 run_scripts.py 来执行项目的主流程：
+2.	运行主脚本 run_scripts.py 来执行项目的主流程：
 Run the main script run_scripts.py to execute the project workflow:
-```bash
-python run/run_scripts.py
+
+python -m ST-deconv.run.run_scripts.py
 
 目录结构 | Directory Structure
 ST-deconv
