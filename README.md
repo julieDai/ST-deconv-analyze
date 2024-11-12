@@ -20,9 +20,9 @@ This project depends on the `conda` environment. You can download the `yml` file
    ```bash
    conda env create -f ST-deconv-environment.yml
 
-	3.	激活环境：
-Activate the environment:
-conda activate ST-deconv
+3. 激活环境:
+   Activate the environment:
+   conda activate ST-deconv
 
 ### 快速开始 | Quick Start
 
