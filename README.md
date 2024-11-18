@@ -3,11 +3,11 @@
 ## Project Overview
 ST-deconv is a toolkit for spatial transcriptomics data analysis, including scripts and model files for data simulation, model training, and result analysis.
 
-## 环境配置
+## Environment Setup
 This project depends on the `conda` environment. You can download the `yml` file to set up the required environment.
 
 ### Conda Environment Setup
-1.   Download the `ST-deconv-environment.yml` file.
+1. Download the `ST-deconv-environment.yml` file.
 
 2. Run the following command in the terminal to create the environment:
 
