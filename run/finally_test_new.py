@@ -11,7 +11,7 @@ import anndata as ad
 import scipy.sparse as sp
 
 
-# 获取选项列表\初始化数据集
+# Get base option list / initialize dataset
 option = get_base_option_list()
 
 dataset = Dataset(option)
@@ -19,7 +19,7 @@ dataset.save_results_dir = f'/home/daishurui/git_project/ST-deconv/data/experime
 
 
 
-# 判断是否使用ST-deconv进行模拟->获取正确的ST-deconv预处理好的数据集路径
+# Determine whether to use ST-deconv simulation -> Get correct ST-deconv preprocessed dataset path
 if dataset.bool_simu == True:
     file_path = f'{dataset.save_results_dir}{dataset.ST_deconv_simu_process_dir}conjustion_data/'
 else :
@@ -29,7 +29,7 @@ real_adata = sc.read_h5ad(f'{file_path}adata_real.h5ad')
 
 
 
-# 使用真实空间转录组数据测试
+# Use real spatial transcriptomics data for testing
 experiment_path = f'{dataset.save_results_dir}'
 real_adata_test = AEDataset(real_adata.X, dataset.celltype_list, real_adata.obs)
     
