@@ -8,11 +8,11 @@ import ast
 
 
 
-# 获取选项列表\初始化数据集
+# Get option list / initialize dataset
 # option = get_option_list()
-# 获取环境变量中的 override 选项
+# Get override options from environment variables
 override_options = os.getenv('OVERRIDE_OPTIONS')
-option = ast.literal_eval(override_options)  # 将字符串解析为字典
+option = ast.literal_eval(override_options)  # Parse the string into a dictionary
 dataset = Dataset(option)
 
 try:
