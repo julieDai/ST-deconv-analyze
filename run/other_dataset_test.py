@@ -22,18 +22,18 @@ def normalize_sparse_matrix(sparse_matrix):
     return normalized_matrix
 
 def reorder_and_fill_missing_vars(pd_test_adata, real_adata):
-    # 获取 real_adata 的 var_names
+    # Get var_names from real_adata
     real_var_names = real_adata.var_names
 
-    # 初始化一个新的矩阵，大小为 test_adata 的 obs 数量, x real_adata 的 var 数量
+    # Initialize a new matrix: number of obs in test_adata × number of vars in real_adata
     new_X = np.zeros((pd_test_adata.shape[0], len(real_var_names)))
 
-    # 填充已有的 var 数据
+    # Fill in existing variable data
     for i, var in enumerate(real_var_names):
         if var in pd_test_adata.columns:
             new_X[:, i] = pd_test_adata[var].values
 
-    # 更新 test_adata 的 X 和 var
+    # Update test_adata's X and var
     # obs_df = pd.DataFrame(index=pd_test_adata.index)
     obs_df = real_adata.obs[:-2]
     new_X=sp.csr_matrix(new_X)
@@ -44,7 +44,7 @@ def reorder_and_fill_missing_vars(pd_test_adata, real_adata):
 
     return test_adata
 
-# 判断是否使用ST-deconv进行模拟->获取正确的ST-deconv预处理好的数据集路径
+# Determine whether ST-deconv simulation is used -> Get the correct ST-deconv preprocessed dataset
 def get_real_adata(folder_name, dataset):
 
     if 'simu' in folder_name:
@@ -57,7 +57,7 @@ def get_real_adata(folder_name, dataset):
 
 
 
-# 获取选项列表\初始化数据集
+# Get option list / initialize dataset
 option = get_base_option_list()
 
 dataset = Dataset(option)
@@ -70,7 +70,7 @@ for folder_name in os.listdir(dataset.save_results_dir):
     folder_path = os.path.join(dataset.save_results_dir, folder_name)
 
 
-    # 检查是否为文件夹
+    # Check if it is a directory
     if os.path.isdir(folder_path):
         real_adata, simu_file_path = get_real_adata(folder_path, dataset)
         print(f"Processing folder: {folder_name}")
@@ -79,7 +79,7 @@ for folder_name in os.listdir(dataset.save_results_dir):
         with open(f'{simu_file_path}rmse.txt', 'w') as file:
             file.write('there is card test rmse:')
 
-    # 遍历数据集计算rmse并存入
+    # Iterate over the dataset, calculate RMSE, and save the results
     for data_folder_name in os.listdir(target_dataset_dir):
         
         data_folder_path = os.path.join(target_dataset_dir, data_folder_name)
@@ -90,14 +90,14 @@ for folder_name in os.listdir(dataset.save_results_dir):
 
         ratio = evalAE(test_data_normaliation_AEdataset, 260, f'{folder_path}/', dataset.celltype_list, f'card_simu_testdata/{data_folder_name}/')
         rmse = calculate_rmse(ratio.T, test_label.T)
-        # 追加数据到文件
+        # Append data to file
         with open(f'{simu_file_path}rmse.txt', 'a') as file:
             file.write(f'\n{data_folder_name}:{rmse}')
         
 
 
 
-# # 使用真实空间转录组数据测试
+# # Test using real spatial transcriptomics data
 # experiment_path = f'{dataset.save_results_dir}'
 # real_adata_test = AEDataset(real_adata.X, dataset.celltype_list, real_adata.obs)
     
