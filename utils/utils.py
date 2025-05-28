@@ -20,10 +20,10 @@ def normalize_sparse_matrix(sparse_matrix):
     return normalized_matrix
 
 def find_obsNames_position(adata, obsNames, filepath):
-    # 使用 NumPy 处理数据
+    # Use NumPy to process the data
     split_data = np.array([name.split('x') for name in obsNames])
 
-    # 检查每个拆分后的数据长度是否为2
+    # Check if each split item has exactly 2 parts
     valid_mask = np.array([len(parts) == 2 for parts in split_data])
     valid_data = split_data[valid_mask]
 
@@ -31,28 +31,28 @@ def find_obsNames_position(adata, obsNames, filepath):
         invalid_data = split_data[~valid_mask]
         print(f"Skipping invalid obs_names: {invalid_data}")
 
-    # 将 valid_data 转换为浮点数
+    # Convert valid_data to float
     x = valid_data[:, 0].astype(float)
     y = valid_data[:, 1].astype(float)
 
-    # 添加到 adata.obs
+    # Add to adata.obs
     adata.obs['x'] = x
     adata.obs['y'] = y
 
-    # 创建一个 pandas DataFrame
+    # Create a pandas DataFrame
     df = pd.DataFrame({
         'x': x,
         'y': y
     })
 
-    # 将结果保存到指定的文件路径，无索引，文件名为 data_pca_neighbor.csv
+    # Save the results to the specified path, without index, file name: data_pca_neighbor.csv
     df.to_csv(f"{filepath}/data_pca_neighbor.csv", index=False)
 
     return adata
 
 
 def merge_csr_matrices1(matrix1, matrix2, real_column_names_matrix1, real_column_names_matrix2, ratio, file_directory, is_ST_simu):
-    # 确保目录存在
+    # Ensure the directory exists
     os.makedirs(f'{file_directory}/conjustion_data', exist_ok=True)
     if is_ST_simu== False:
         obsNames = matrix1.obs_names
@@ -60,24 +60,24 @@ def merge_csr_matrices1(matrix1, matrix2, real_column_names_matrix1, real_column
         
     obsNames_real = matrix2.obs_names
     matrix2 = matrix2.X
-    # 将输入矩阵转换为CSR格式
+    # Convert the input matrices to CSR format
     matrix1 = csr_matrix(matrix1)
     matrix2 = csr_matrix(matrix2)
 
-    # 将矩阵转换为DataFrame
+    # Convert matrices to DataFrames
     df1 = pd.DataFrame(matrix1.toarray(), columns=real_column_names_matrix1)
     df2 = pd.DataFrame(matrix2.toarray(), columns=real_column_names_matrix2)
 
 
-    # 计算两个DataFrame列名的并集，并保留列的原始顺序
+    # Compute the union of column names from both DataFrames, preserving order
     all_real_column_names = list(dict.fromkeys(real_column_names_matrix1.tolist() + real_column_names_matrix2.tolist()))
     np.save(f'{file_directory}/conjustion_data/conjustion_gene_names.npy', all_real_column_names)
 
-    # 重建DataFrame，确保包含并集中的所有列，缺失的列用0填充
+    # Rebuild DataFrames to ensure all columns in the union are present, filling missing values with 0
     df1 = df1.reindex(columns=all_real_column_names, fill_value=0)
     df2 = df2.reindex(columns=all_real_column_names, fill_value=0)
 
-    # 合并DataFrame并立即转换回CSR格式
+    # Merge the DataFrames and immediately convert them back to CSR format
     simu_merged_matrix = csr_matrix(df1.values)
     real_merged_matrix = csr_matrix(df2.values)
 
@@ -85,7 +85,7 @@ def merge_csr_matrices1(matrix1, matrix2, real_column_names_matrix1, real_column
     adata_simu = ad.AnnData(X=simu_merged_matrix, var=df_var)
     adata_real = ad.AnnData(X=real_merged_matrix, var=df_var)
 
-    # 规格化当前训练数据的位置信息
+    # Normalize the location information for the current training data
     adata_real = find_obsNames_position(adata_real, obsNames_real, f'{file_directory}/conjustion_data') 
 
     if is_ST_simu:
@@ -95,7 +95,7 @@ def merge_csr_matrices1(matrix1, matrix2, real_column_names_matrix1, real_column
 
     
 
-    # 当前训练数据的ratio信息存入obs
+    # Store the ratio information into obs for the current training data
     if type(ratio) == list:
         ratio = pd.DataFrame(ratio)
     else:
@@ -104,57 +104,57 @@ def merge_csr_matrices1(matrix1, matrix2, real_column_names_matrix1, real_column
     df_combined = ratio.join(df_obs)
     adata_simu.obs = df_combined
 
-    # 对稀疏矩阵进行归一化
+    # Normalize the sparse matrices
     adata_simu.X = normalize_sparse_matrix(adata_simu.X)
     adata_real.X = normalize_sparse_matrix(adata_real.X)
 
-    # 保存归一化的稀疏矩阵
+    # Save the normalized sparse matrices
     adata_simu.write(f'{file_directory}conjustion_data/adata_simu.h5ad')
     adata_real.write(f'{file_directory}conjustion_data/adata_real.h5ad')
 
-    # 函数返回adata
+    # Return the merged AnnData objects
     return adata_simu, adata_real
 
 
 def filter_adata_by_genes(adata_file_path, genes_file_path, output_file_path):
     """
-    根据基因列表筛选AnnData对象并保存到新的文件。
+    Filter an AnnData object based on a list of genes and save to a new file.
 
-    参数:
-    adata_file_path (str): 输入AnnData对象的文件路径（.h5ad文件）。
-    genes_file_path (str): 包含基因名称的CSV文件路径。
-    output_file_path (str): 输出筛选后的AnnData对象的文件路径（.h5ad文件）。
+    Parameters:
+    adata_file_path (str): File path to the input AnnData object (.h5ad file).
+    genes_file_path (str): File path to a CSV file containing gene names.
+    output_file_path (str): File path to save the filtered AnnData object (.h5ad file).
     """
-    # 读取AnnData对象
+    # Read the AnnData object
     adata = sc.read_h5ad(adata_file_path)
     
-    # 读取基因名称列表
+    # Read the list of gene names
     marker_gene = pd.read_csv(genes_file_path)
     marker_gene_names = marker_gene['GeneName'].unique()
 
-    # 根据筛选后的var_name提取数据
+    # Filter the data based on the gene names in var_names
     filtered_adata = adata[:, adata.var_names.isin(marker_gene_names)]
     
-    # 保存筛选后的AnnData对象
+    # Save the filtered AnnData object
     filtered_adata.write(output_file_path)
     print(f"Filtered AnnData object saved to {output_file_path}")
 
 def filter_adata_by_genes_data(adata, genes_file_path):
     """
-    根据基因列表筛选AnnData对象并保存新的数据。
+    Filter an AnnData object based on a list of genes and return the new data.
 
-    参数:
-    adata: 输入AnnData对象
-    genes_file_path (str): 包含基因名称的CSV文件路径。
+    Parameters:
+    adata: Input AnnData object
+    genes_file_path (str): File path to a CSV file containing gene names.
     """
-    # 读取AnnData对象
+    # Use the provided AnnData object
     adata = adata
     
-    # 读取基因名称列表
+    # Read the list of gene names
     marker_gene = pd.read_csv(genes_file_path)
     marker_gene_names = marker_gene['GeneName'].unique()
 
-    # 根据筛选后的var_name提取数据
+    # Filter the data based on the gene names in var_names
     filtered_adata = adata[:, adata.var_names.isin(marker_gene_names)]
     
     return filtered_adata
@@ -207,13 +207,13 @@ def hilbert_curve(x, y, level, side, rotation):
 from sklearn.neighbors import KDTree, BallTree
 def get_tf_index(row_col_data, k):
 
-    # 构建KDTree
+    # Build KDTree
     kdtree = KDTree(row_col_data)
 
-    # 构建BallTree
+    # Build BallTree
     balltree = BallTree(row_col_data)
 
-    # 获取每一行数据的最近的k-1个点和最远的k-1个点的索引
+    # Get the indices of the closest k-1 points and the farthest k-1 points for each row
     closest_indices = kdtree.query(row_col_data, k=k, return_distance=False)[:, 1:]
     farthest_indices = balltree.query(row_col_data, k=k, return_distance=False)[:, 1:]
 
@@ -267,34 +267,34 @@ def get_newly_filename_index(folder, filename):
 
 import math
 def calculate_rmse(predictions, targets):
-    n = len(predictions)  # 样本数量
-    k = len(predictions[0])  # 预测值和真实值的数量
+    n = len(predictions)  # Number of samples
+    k = len(predictions[0])  # Number of predicted and true values per sample
 
-    squared_diff_sum = 0.0  # 平方差总和
+    squared_diff_sum = 0.0  # Sum of squared differences
 
     for i in range(n):
         for j in range(k):
             squared_diff = (targets[i][j] - predictions[i][j]) ** 2
             squared_diff_sum += squared_diff
 
-    mean_squared_error = squared_diff_sum / (n * k)  # 平均平方差
-    rmse = math.sqrt(mean_squared_error)  # 均方根误差
+    mean_squared_error = squared_diff_sum / (n * k)  # Mean squared error
+    rmse = math.sqrt(mean_squared_error)  # Root mean square error
 
     return rmse
 
 def reorder_and_fill_missing_vars(test_adata, real_adata):
-    # 获取 real_adata 的 var_names
+    # Get var_names from real_adata
     real_var_names = real_adata.var_names
 
-    # 初始化一个新的矩阵，大小为 test_adata 的 obs 数量 x real_adata 的 var 数量
+    # Initialize a new matrix: number of rows = test_adata observations, number of columns = real_adata variables
     new_X = np.zeros((test_adata.shape[0], len(real_var_names)))
 
-    # 填充已有的 var 数据
+    # Fill in data for existing variables
     for i, var in enumerate(real_var_names):
         if var in test_adata.var_names:
             new_X[:, i] = test_adata[:, var].X.toarray().flatten()
 
-    # 更新 test_adata 的 X 和 var
+    # Update test_adata with new matrix and variable names
     test_adata = ad.AnnData(X=sp.csr_matrix(new_X), 
                             var=pd.DataFrame(index=real_var_names), 
                             obs=test_adata.obs, 
@@ -304,7 +304,7 @@ def reorder_and_fill_missing_vars(test_adata, real_adata):
                             varp=test_adata.varp, 
                             uns=test_adata.uns)
     
-    # 对稀疏矩阵进行归一化
+    # Normalize the sparse matrix
     test_adata.X = normalize_sparse_matrix(test_adata.X)
 
     return test_adata
@@ -329,20 +329,20 @@ def create_five_split_testsets(data, current_fold):
     train_adata, test_adata = create_train_test_sets(recordered_simu_adata, current_fold=0)
     ```
     """
-    # 创建 5 折交叉验证的分割器
+    # Create a 5-fold cross-validator
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
 
-    # 获取分割后的索引
+    # Get the list of split indices
     splits = list(kf.split(np.arange(data.shape[0])))
 
-    # 获取当前折叠的训练和测试索引
+    # Get training and testing indices for the current fold
     train_indices, test_indices = splits[current_fold]
 
-    # 创建训练集和测试集的 AnnData 对象
+    # Create AnnData objects for training and testing sets
     adata_train = data[train_indices].copy()
     adata_test = data[test_indices].copy()
 
-    # 打印数据集大小
+    # Print dataset sizes
     print("测试集大小adata_test:", adata_test.shape)
     print("训练集大小adata_train:", adata_train.shape)
 
