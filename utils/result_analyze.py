@@ -13,10 +13,10 @@ def plot_rmse(rmse_split, rmse_othertest, folder_name, path_pic):
     plt.legend()
     plt.grid(True)
 
-    # 确保路径存在
+    # Ensure the path exists
     os.makedirs(path_pic, exist_ok=True)
 
-    # 保存图像
+    # Save the plot
     plt.savefig(os.path.join(path_pic, f'{folder_name}.png'))
     plt.close()
 
@@ -33,7 +33,7 @@ def process_folder(folder_path, filename):
     result_rmse_path = os.path.join(folder_path, filename)    
     rmse_values = []
     
-    # 提取 RMSE 值
+    # Extract RMSE values
     if os.path.exists(result_rmse_path):
         rmse = extract_rmse(result_rmse_path, 'rmse')
         other_rmse = extract_rmse(result_rmse_path, 'othertest_rmse')
@@ -43,7 +43,7 @@ def process_folder(folder_path, filename):
             rmse_values = other_rmse
     
     
-    # 计算统计信息
+    # Compute statistics
     if rmse_values:
         rmse_mean = np.mean(rmse_values)
         rmse_max = np.max(rmse_values)
@@ -88,13 +88,13 @@ def process_all_folders(base_folder, path_pic):
     
     return pd.DataFrame(results), pd.DataFrame(results_raw_split, index=folder_names).transpose(), pd.DataFrame(results_raw_othertest, index=folder_names).transpose()
 
-# 示例调用
-base_folder = '/home/daishurui/git_project/ST-deconv/data/experiment/CL4.0/trainModel_xiaorong_01'  # experience文件夹路径
+# Example usage
+base_folder = '/home/daishurui/git_project/ST-deconv/data/experiment/CL4.0/trainModel_xiaorong_01'  # Path to the experiment directory
 
-print("输入experiment的文件夹名：")
+print("Enter the name of the experiment subfolder:")
 base_filename = input()
 base_filepath = os.path.join(base_folder, base_filename) 
-print("输入不包含xslx后缀的文件名：")
+print("Enter the name of the Excel file to be saved (without .xlsx extension):")
 file_name = input()
 
 results_df, results_raw_split_df, results_raw_other_df = process_all_folders(base_filepath, f'rmse_summary/{file_name}')
