@@ -11,43 +11,43 @@ from ..utils.utils import get_unique_filename, get_newly_filename, get_newly_fil
 import os
 def mmd_loss(X, Y):
     """
-    计算MK-MMD距离作为损失函数
+    Calculate MK-MMD distance as a loss function
     Args:
-    - X: 第一个分布的样本数据
-    - Y: 第二个分布的样本数据
+    - X: Sample data from the first distribution
+    - Y: Sample data from the second distribution
     Returns:
-    - mmd: MK-MMD距离
+    - mmd: MK-MMD distance
     """
-    sigma = 1.0  # 高斯核函数的带宽参数
+    sigma = 1.0  # Bandwidth parameter for the Gaussian kernel
     n = X.size(0)
     m = Y.size(0)
 
-    # 高斯核函数
+    # Gaussian kernel function
     def kernel(x, y):
         return torch.exp(-torch.sum((x - y)**2) / (2 * sigma**2))
 
-    # 计算样本之间的核函数值
+    # Compute kernel values between samples
     xx = torch.mean(torch.stack([kernel(x, x) for x in X]))
     yy = torch.mean(torch.stack([kernel(y, y) for y in Y]))
     xy = torch.mean(torch.stack([kernel(x, y) for x in X for y in Y]))
 
-    # 计算MK-MMD距离
+    # Compute MK-MMD distance
     mmd = xx - 2 * xy + yy
     
     return mmd
 
 def dynamic_contrastive_loss(embeddings, positions, threshold_pos, threshold_neg, threshold_radius):
     """
-    根据动态选择的正负样本对计算损失。
+    Compute loss based on dynamically selected positive and negative sample pairs.
     """
     num_samples = embeddings.shape[0]
     loss = 0.0
     for i in range(num_samples):
-        # 计算距离
+        # Compute distance
         distances = torch.norm(embeddings - embeddings[i], dim=1)
         position_distances = torch.norm(positions - positions[i], dim=1)
         
-        # 动态选择正负样本
+        # Dynamically select positive and negative samples
         positive_mask = (position_distances < threshold_pos) & (position_distances > 0)
         negative_mask = (position_distances > threshold_neg) & (position_distances < threshold_radius)
         
@@ -68,45 +68,45 @@ def dynamic_contrastive_loss(embeddings, positions, threshold_pos, threshold_neg
         loss += positive_loss + negative_loss
     
     return (loss / num_samples)*0.01
-# 定义对比学习损失函数
+# Define contrastive learning loss function
 def nt_xent_loss(encoded_closest, encoded_farthest, encoded_target_sample, temperature=0.1):
     """
-    计算NT-Xent损失（Normalized Temperature-scaled Cross Entropy Loss）。
-
-    参数:
-    - encoded_closest: 编码后的最近邻样本特征。
-    - encoded_farthest: 编码后的最远邻样本特征。
-    - encoded_target_sample: 编码后的目标样本特征。
-    - temperature: 温度参数，用于调整相似度计算的尺度。
-
-    返回:
-    - loss: 计算得到的损失值。
+    Compute NT-Xent loss (Normalized Temperature-scaled Cross Entropy Loss).
+    
+    Args:
+    - encoded_closest: Encoded features of the nearest neighbor sample.
+    - encoded_farthest: Encoded features of the farthest neighbor sample.
+    - encoded_target_sample: Encoded features of the target sample.
+    - temperature: Temperature parameter used to scale the similarity scores.
+    
+    Returns:
+    - loss: Computed loss value.
     """
-    # 将特征向量连接为一个张量
+    # Concatenate feature vectors into a single tensor
     features = torch.cat([encoded_closest, encoded_farthest, encoded_target_sample], dim=0)
 
-    # 计算样本对之间的相似度矩阵
+    # Compute the similarity matrix between sample pairs
     similarity_matrix = torch.matmul(features, features.t()) / temperature
 
-    # 构建掩码，将相似度矩阵的对角线元素排除在外
+    # Create a mask to exclude diagonal elements of the similarity matrix
     mask = torch.eye(similarity_matrix.size(0), dtype=bool).to(similarity_matrix.device)
     similarity_matrix = similarity_matrix.masked_fill(mask, float('-inf'))
 
-    # 计算正样本的对数概率
+    # Compute the log-probability for positive samples
     pos_similarities = similarity_matrix[:len(encoded_closest), len(encoded_closest):2 * len(encoded_closest)]
     pos_log_prob = F.log_softmax(pos_similarities, dim=1).diagonal().mean()
 
-    # 计算负样本的对数概率
+    # Compute the log-probability for negative samples
     neg_similarities = similarity_matrix[:len(encoded_closest), 2 * len(encoded_closest):]
     neg_log_prob = F.log_softmax(neg_similarities, dim=1).mean()
 
-    # 计算NT-Xent损失
+    # Compute the NT-Xent loss
     loss = -(pos_log_prob + neg_log_prob)
 
     return loss
 def triplet_loss(anchor, positive, negative, margin=1.0):
     """
-    计算三元组损失
+    Compute triplet loss
     """
     pos_dist = torch.norm(anchor - positive, p=2, dim=1)
     neg_dist = torch.norm(anchor - negative, p=2, dim=1)
@@ -115,31 +115,31 @@ def triplet_loss(anchor, positive, negative, margin=1.0):
 
 def dynamic_triplet_loss(embeddings, positions, threshold_pos, threshold_neg, threshold_radius):
     """
-    根据动态选择的正负样本对计算三元组损失。
+    Compute triplet loss based on dynamically selected positive and negative sample pairs.
     """
     num_samples = embeddings.shape[0]
     losses = []
-    margin = 1.0  # 三元组损失的边界值
+    margin = 1.0  # Margin value for triplet loss
 
     for i in range(num_samples):
-        # 计算距离
+        # Compute distances
         distances = torch.norm(embeddings - embeddings[i], dim=1)
         position_distances = torch.norm(positions - positions[i], dim=1)
         
-        # 动态选择正负样本
+        # Dynamically select positive and negative samples
         positive_mask = (position_distances < threshold_pos) & (position_distances > 0)
         negative_mask = (position_distances > threshold_neg) & (position_distances < threshold_radius)
         
         if positive_mask.any() and negative_mask.any():
-            # 选择最近的正样本和最远的负样本
+            # Select the nearest positive sample and the farthest negative sample
             positive_indices = torch.where(positive_mask)[0]
             negative_indices = torch.where(negative_mask)[0]
             
-            # 可以随机选择，或选择距离最近的正样本和最远的负样本
+            # Can randomly select, or choose the closest positive and the farthest negative
             positive_idx = positive_indices[torch.argmin(distances[positive_indices])]
             negative_idx = negative_indices[torch.argmax(distances[negative_indices])]
             
-            # 计算三元组损失
+            # Compute triplet loss
             anchor = embeddings[i].unsqueeze(0)
             positive = embeddings[positive_idx].unsqueeze(0)
             negative = embeddings[negative_idx].unsqueeze(0)
@@ -148,45 +148,45 @@ def dynamic_triplet_loss(embeddings, positions, threshold_pos, threshold_neg, th
     
     return torch.stack(losses).mean() if losses else torch.tensor(0.0)
 
-# 定义多标签分类准确率计算函数
+# Define function to calculate multi-label classification accuracy
 def calculate_multilabel_accuracy(predictions, targets, threshold=0.0303):
     """
-    计算多标签分类的准确率。
+    Calculate accuracy for multi-label classification.
 
-    参数:
-    - predictions: 模型的预测输出。
-    - targets: 真实的标签。
-    - threshold: 预测概率的阈值，用于将概率转换为二进制标签。
+    Args:
+    - predictions: Model output predictions.
+    - targets: Ground truth labels.
+    - threshold: Probability threshold to convert predicted probabilities into binary labels.
 
-    返回:
-    - accuracy: 计算得到的准确率。
+    Returns:
+    - accuracy: Computed accuracy.
     """
-    # 将预测的概率值转换为二进制标签
+    # Convert predicted probabilities to binary labels
     predicted_labels = (predictions > threshold).float()
 
-    # 计算正确预测的数量
+    # Count the number of correct predictions
     correct_predictions = (predicted_labels == targets).all(dim=1).sum().item()
 
-    # 计算准确率
+    # Calculate accuracy
     accuracy = correct_predictions / targets.size(0)
 
     return accuracy
 
 
-# 定义自定义数据集类
+# Define custom dataset class
 class AEDataset(Dataset):
     """
-    自定义的自编码器数据集类。
+    Custom autoencoder dataset class.
 
-    参数:
-    - adata: 数据集中的特征数据。
-    - celltype_list: 细胞类型列表。
-    - label: 数据集中的标签（可选）。
+    Args:
+    - adata: Feature data from the dataset.
+    - celltype_list: List of cell types.
+    - label: Labels from the dataset (optional).
     """
 
     def __init__(self, data, celltype_list, label=None):
         self.data = data
-        # 加上了position的维度2
+        # Added position dimension of size 2
         self.data_lenth = data.shape[1]+2
         self.label = label
         self.celltype_list = celltype_list
@@ -197,11 +197,11 @@ class AEDataset(Dataset):
         return self.data.shape[0]
 
     def __getitem__(self, index):
-        # 获取稀疏矩阵数据和标签数组
+        # Get sparse matrix data and label array
         input_data = self.data[index].toarray()
         input_data = torch.tensor(input_data, dtype=torch.float32).clone().detach()
         
-        # 拼接 [0, 0] 到 input_data (初始设置)
+        # Append [0, 0] to input_data (initial setting)
         zero_position_label = torch.tensor([[0.0, 0.0]], dtype=torch.float32)
         input_data = torch.cat((input_data, zero_position_label), dim=1)
         
@@ -214,22 +214,22 @@ class AEDataset(Dataset):
                 self.position_label = self.label[['x', 'y']].iloc[index].values
                 self.position_label = torch.tensor(self.position_label, dtype=torch.float32).clone().detach()
                 
-                # 替换 input_data 最后的两个值为 position_label 的值
+                # Replace the last two values of input_data with values from position_label
                 input_data[:, -2:] = self.position_label.unsqueeze(0)
 
         return input_data, self.num_label, self.position_label
         
 
 
-# 定义编码器和解码器的网络块
+# Define encoder and decoder network blocks
 class EncoderBlock(nn.Module):
     """
-    编码器网络块，包含线性层、LeakyReLU激活函数和Dropout。
+    Encoder network block consisting of a linear layer, LeakyReLU activation, and dropout.
 
-    参数:
-    - in_dim: 输入维度。
-    - out_dim: 输出维度。
-    - do_rates: Dropout比率。
+    Args:
+    - in_dim: Input dimension.
+    - out_dim: Output dimension.
+    - do_rates: Dropout rate.
     """
 
     def __init__(self, in_dim, out_dim, do_rates):
@@ -244,7 +244,7 @@ class EncoderBlock(nn.Module):
 
 class DecoderBlock(nn.Module):
     """
-    解码器网络块，结构与编码器块相似。
+    Decoder network block, structurally similar to the encoder block.
     """
 
     def __init__(self, in_dim, out_dim, do_rates):
@@ -257,10 +257,10 @@ class DecoderBlock(nn.Module):
         out = self.layer(x)
         return out
 
-# 定义编码器和预测器模型
+# Define encoder and predictor models
 class Encoder(nn.Module):
     """
-    编码器模型，用于将输入特征编码为低维表示。
+    Encoder model for encoding input features into low-dimensional representations.
     """
 
     def __init__(self, input_size):
@@ -275,8 +275,9 @@ class Encoder(nn.Module):
 
 class Predictor(nn.Module):
     """
-    预测器模型，用于基于编码后的特征预测标签。
+    Predictor model for predicting labels based on encoded features.
     """
+
 
     def __init__(self, output_size):
         super(Predictor, self).__init__()
@@ -291,51 +292,50 @@ class Predictor(nn.Module):
 class DomainClassifier(nn.Module):
     def __init__(self, input_size):
         super(DomainClassifier, self).__init__()
-        # 定义领域分类器的结构
+        # Define the structure of the domain classifier
         self.discriminator_da = nn.Sequential(EncoderBlock(256, 128, 0.2),
                                               nn.Linear(128, 1),
                                               nn.Sigmoid())
     def forward(self, x):
-        # 前向传播计算领域分类结果
+        # Forward pass to compute domain classification result
         discriminator_da = self.discriminator_da(x)
         return discriminator_da
     
-# 定义自编码器(AE)的训练函数
+# Define the training function for the Autoencoder (AE)
 def trainAE(ref_dataset, target_dataset, batch_size, shuffle, num_epoch,
             filepath, celltype_list, learning_rate, is_DAN, is_CL):
     """
-    训练自编码器模型。
+    Train the autoencoder model.
 
-    参数:
-    - ref_dataset: 参考数据集，用于训练编码器。
-    - target_dataset: 目标数据集，未使用但为保持函数签名的一致性而保留。
-    - batch_size: 批处理大小。
-    - shuffle: 是否在每个epoch打乱数据。
-    - num_epoch: 迭代次数。
-    - filepath: 模型保存路径。
-    - celltype_list: 细胞类型列表。
-    - learning_rate: 学习率。
-
-        """
+    Args:
+    - ref_dataset: Reference dataset used to train the encoder.
+    - target_dataset: Target dataset (not used but kept for consistency).
+    - batch_size: Batch size.
+    - shuffle: Whether to shuffle the data at each epoch.
+    - num_epoch: Number of training epochs.
+    - filepath: Path to save the models.
+    - celltype_list: List of cell types.
+    - learning_rate: Learning rate.
+    """
     cuda_available = torch.cuda.is_available()
 
     print("CUDA Available:", cuda_available)
 
-    # 设置设备
+    # Set device
     device = torch.device("cuda:0")
 
-    # 初始化数据加载器
+    # Initialize data loaders
     target_dataloder = DataLoader(target_dataset, batch_size=batch_size, shuffle=shuffle, drop_last=True)
     ref_dataloder = DataLoader(ref_dataset, batch_size=batch_size, shuffle=shuffle, drop_last=True)
 
 
-    # 初始化模型
+    # Initialize models
     input_size = ref_dataset.data_lenth
     encoder = Encoder(input_size=input_size).to(device)
     predictor = Predictor(output_size=len(celltype_list)).to(device)
     domainclassifier = DomainClassifier(input_size=input_size).to(device)
 
-    # 加载预训练的模型参数
+    # Load pre-trained model parameters if available
     if os.path.exists(f'{filepath}DANN_model/Model_parameters/encoder_model.pth'):
         newly_encoder_model = get_newly_filename(f'{filepath}DANN_model/Model_parameters/', 'encoder_model.pth')
         newly_predictor_model = get_newly_filename(f'{filepath}AE_model/Model_parameters/', 'predictor_model.pth')
@@ -348,18 +348,18 @@ def trainAE(ref_dataset, target_dataset, batch_size, shuffle, num_epoch,
         newly_predictor_model = get_newly_filename(f'{filepath}AE_model/Model_parameters/', 'predictor_model.pth')
         encoder.load_state_dict(torch.load(newly_encoder_model))
         predictor.load_state_dict(torch.load(newly_predictor_model))
-    # 定义损失函数和优化器
+    # Define loss functions and optimizer
     # bce_loss_fn = nn.BCELoss()
     l1_loss_fn = nn.L1Loss()
     optimizer_predictor = optim.Adam(list(encoder.parameters()) + list(predictor.parameters()), lr=learning_rate)
 
-    # 损失记录
+    # Loss tracking
     loss_list = []
     loss_list_l1 = []
     loss_list_nt = []
     # loss_list_bce = []
 
-    # 训练循环
+    # Training loop
     for epoch in range(num_epoch):
         print(f"Epoch {epoch + 1}/{num_epoch}")
         encoder.train()
@@ -371,7 +371,7 @@ def trainAE(ref_dataset, target_dataset, batch_size, shuffle, num_epoch,
         total_loss_nt_sum = 0.0
         total_loss_BCE_sum = 0.0
 
-        # 创建迭代器，方便使用next手动加载数据
+        # Create iterator for manual batch loading
         target_iter = iter(target_dataloder)
         
 
@@ -379,15 +379,15 @@ def trainAE(ref_dataset, target_dataset, batch_size, shuffle, num_epoch,
 
             batch_target = next(target_iter)
 
-            # 数据准备
+            # Data preparation
             input_tensor_batch_ref, input_label_batch_ref , input_position_label_batch_ref = batch_ref[0].to(device), batch_ref[1].to(device), batch_ref[2].to(device)
             input_tensor_batch_target= batch_target[0].to(device)
 
-            # 执行前向传播
+            # Forward pass
             encoded_ref = encoder(input_tensor_batch_ref.squeeze(dim=1))
             encoded_target = encoder(input_tensor_batch_target.squeeze(dim=1))
 
-            # 使用domainclassifier，并计算BCEloss损失
+            # Use domainclassifier and compute BCEloss (replaced by MMD loss)
             domainclassified_target = domainclassifier(encoded_target)
             domainclassified_ref = domainclassifier(encoded_ref)
             #BCEloss = bce_loss_fn(domainclassified_target, target_label) + bce_loss_fn(domainclassified_ref, ref_label)
@@ -395,7 +395,7 @@ def trainAE(ref_dataset, target_dataset, batch_size, shuffle, num_epoch,
             CL_loss = dynamic_contrastive_loss(encoded_ref, input_position_label_batch_ref, threshold_pos=2, threshold_neg=3, threshold_radius=6)
 
 
-            # 计算损失
+            # Compute losses
             predicted_label = predictor(encoded_ref)
             l1_loss = l1_loss_fn(predicted_label, input_label_batch_ref)
             if is_DAN:
@@ -410,19 +410,19 @@ def trainAE(ref_dataset, target_dataset, batch_size, shuffle, num_epoch,
                     total_loss = l1_loss
                 
 
-            # 反向传播和优化
+            # Backpropagation and optimization
             optimizer_predictor.zero_grad()
             total_loss.backward()
             optimizer_predictor.step()
 
-            # 更新统计数据
+            # Update statistics
             total_loss_epoch += total_loss.item()
             sum_accuracy += calculate_multilabel_accuracy(predicted_label, input_label_batch_ref)
             total_loss_l1_sum += l1_loss.item()
             # total_loss_BCE_sum += BCEloss.item()
             total_loss_nt_sum += CL_loss.item()
 
-        # 输出统计信息
+        # Print epoch statistics
         avg_accuracy = sum_accuracy / len(ref_dataloder)
         avg_loss_epoch = total_loss_epoch / len(ref_dataloder)
         avg_loss_epoch_l1 = total_loss_l1_sum / len(ref_dataloder)
@@ -431,14 +431,14 @@ def trainAE(ref_dataset, target_dataset, batch_size, shuffle, num_epoch,
         print(
             f"Epoch {epoch + 1}: Avg Loss: {avg_loss_epoch}, L1 Loss: {avg_loss_epoch_l1}, NT-Xent Loss: {CL_loss}, Accuracy: {avg_accuracy}")
 
-        # 记录损失
+        # Log losses
         loss_list.append(avg_loss_epoch)
         loss_list_l1.append(avg_loss_epoch_l1)
         loss_list_nt.append(CL_loss)
         # loss_list_bce.append(avg_loss_bce)
 
 
-    # 绘制和保存损失曲线
+    # Plot and save loss curves
     plt.figure(figsize=(10, 6))
     plt.plot(loss_list, label='Total Loss')
     plt.plot(loss_list_l1, label='L1 Loss')
@@ -452,7 +452,7 @@ def trainAE(ref_dataset, target_dataset, batch_size, shuffle, num_epoch,
     plt.savefig(ae_pic_unique_filename)
     plt.show()
 
-    # 保存模型参数
+    # Save model parameters
     encoder_model_unique_filename = get_unique_filename(f'{filepath}AE_model/Model_parameters/','encoder_model.pth')
     predictor_model_unique_filename = get_unique_filename(f'{filepath}AE_model/Model_parameters/','predictor_model.pth')
 
@@ -462,27 +462,27 @@ def trainAE(ref_dataset, target_dataset, batch_size, shuffle, num_epoch,
 
 def evalAE(target_dataset, batch_size, filepath, celltype_list, testdata_name):
     """
-    评估自编码器(AE)模型在目标数据集上的性能。
+    Evaluate the Autoencoder (AE) model on the target dataset.
 
-    参数:
-    - target_dataset: 用于评估的目标数据集。
-    - batch_size: DataLoader的批处理大小。
-    - filepath: 模型参数保存的路径。
-    - celltype_list: 细胞类型列表，用于确定模型输出大小。
+    Args:
+    - target_dataset: Target dataset for evaluation.
+    - batch_size: Batch size for the DataLoader.
+    - filepath: Path where model parameters are saved.
+    - celltype_list: List of cell types used to determine model output size.
     """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"{'GPU' if torch.cuda.is_available() else 'CPU'} is available for evaluation.")
 
-    # 初始化目标数据集的DataLoader
+    # Initialize DataLoader for the target dataset
     target_dataloader = DataLoader(target_dataset, batch_size=batch_size, shuffle=False, drop_last=True)
 
-    # 模型初始化
+    # Initialize models
     input_size = target_dataset.data_lenth
     encoder = Encoder(input_size).to(device)
     predictor = Predictor(len(celltype_list)).to(device)
 
-    # 确定并加载最新的模型参数
-    # 获取最新模型文件的路径
+    # Determine and load the most recent model parameters
+    # Get the index of the latest model files
     dann_model_index = get_newly_filename_index(f'{filepath}/DANN_model/Model_parameters/', 'encoder_model.pth')
     ae_model_index = get_newly_filename_index(f'{filepath}/AE_model/Model_parameters/', 'encoder_model.pth')
 
@@ -493,7 +493,7 @@ def evalAE(target_dataset, batch_size, filepath, celltype_list, testdata_name):
 
     newly_predictor_model = get_newly_filename(f'{filepath}/AE_model/Model_parameters/', 'predictor_model.pth')
 
-    # 加载模型权重
+    # Load model weights
     if os.path.exists(newly_encoder_model):
         encoder.load_state_dict(torch.load(newly_encoder_model, map_location=device))
         print(f'Encoder model{newly_encoder_model} loaded successfully.')
@@ -509,7 +509,7 @@ def evalAE(target_dataset, batch_size, filepath, celltype_list, testdata_name):
     encoder.eval()
     predictor.eval()
 
-    # 评估模型
+    # Evaluate the model
     all_outputs = []
     with torch.no_grad():
         for batch_data in target_dataloader:
@@ -519,7 +519,7 @@ def evalAE(target_dataset, batch_size, filepath, celltype_list, testdata_name):
             predictor_output = predictor(encoded_output)
             all_outputs.append(predictor_output.cpu().numpy())
 
-    # 合并所有批次的输出并保存到CSV文件
+    # Concatenate all batch outputs and save to a CSV file
     predictor_matrix_ref = np.concatenate(all_outputs, axis=0)
     df = pd.DataFrame(predictor_matrix_ref)
     os.makedirs(f'{filepath}AE_model/Model_result/{testdata_name}/', exist_ok=True)
