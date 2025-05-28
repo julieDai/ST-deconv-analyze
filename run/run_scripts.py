@@ -10,14 +10,14 @@ import time
 import logging
 import GPUtil
 
-# 定义要运行的模块列表
+# Define the list of modules to run
 modules = [
-    # 'ST-deconv.run.simu_data', #在创建新的并行进程的时候需要重新做预处理 所以放在了下面去
+    # 'ST-deconv.run.simu_data', # Preprocessing must be redone when creating new parallel processes, so it's moved below
     'ST-deconv.run.train',
     # 'ST-deconv.run.finally_test'  
 ]
 
-# 消融实验不同的覆盖情况
+# Ablation experiment with different coverage scenarios
 overrides_keys1 = [
     # 'AE',
     # 'AE_simu',
@@ -53,25 +53,25 @@ overrides_trainset = [
 result_file_name = 'trainModel_(30_30_60)_CLloss*0.01'
 
 
-# 配置日志记录
+# Configure logging
 logging.basicConfig(filename='process_log.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def process_key_and_modules(key_trainset, key):
     global last_used_gpu
     start_time = time.time()
 
-    with last_used_gpu.get_lock():  # 确保线程安全
+    with last_used_gpu.get_lock():  # Ensure thread safety
         last_used_gpu.value = (last_used_gpu.value + 1) % 2  # 有2个GPU
-        last_used_gpu.value = 1 # 使用第2个GPU
+        last_used_gpu.value = 1 # Use the second GPU
         
         gpu_id = last_used_gpu.value
 
     os.environ['CUDA_VISIBLE_DEVICES'] = str(gpu_id)
 
     set_override_value(key, key_trainset)
-    options = get_option_list(f'{result_file_name}_{key_trainset}') #单独训练每一个训练集
+    options = get_option_list(f'{result_file_name}_{key_trainset}') # Train each dataset separately
     
-    # options = get_option_list(f'{result_file_name}') # 依次训练9个训练集
+    # options = get_option_list(f'{result_file_name}') # Sequentially train all 9 datasets
     
     env = os.environ.copy()
     env['OVERRIDE_OPTIONS'] = json.dumps(options)
@@ -91,7 +91,7 @@ def process_key_and_modules(key_trainset, key):
 
 
 if __name__ == '__main__':
-    last_used_gpu = Value('i', -1)  # 初始化为-1，表示未使用任何GPU
+    last_used_gpu = Value('i', -1)  # Initialize to -1, meaning no GPU has been used
 
     with Pool(4) as pool:
         combinations = list(product(overrides_trainset, overrides_keys1))
