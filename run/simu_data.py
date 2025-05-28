@@ -16,13 +16,13 @@ option = ast.literal_eval(override_options)  # 将字符串解析为字典
 dataset = Dataset(option)
 
 try:
-    # ST-deconv模拟数据
+    # ST-deconv simulated data
     if dataset.bool_simu == True:
         single_cell_data = dataset.load_single_cell_data()
         real_spatial_data = dataset.load_real_spatial_data()
 
         file_dirc_simu_process = f'{dataset.save_results_dir}{dataset.ST_deconv_simu_process_dir}'
-        # 数据预处理和模拟
+        # Data preprocessing and simulation
         mix_RNA_seq = Mix(single_cell_data, dataset.celltype_list, dataset.simu_sample_size, 
                         dataset.simu_sample_num, file_dirc_simu_process)
 
@@ -42,7 +42,7 @@ try:
               
 
 
-    # 使用已知模拟数据
+    # Use pre-existing simulated data
     else:
         simu_spatial_data = dataset.load_simu_data()
         real_spatial_data = dataset.load_real_spatial_data()
@@ -58,7 +58,7 @@ try:
               
 
 except Exception as e:
-            print(f"选择是否使用ST-deconv模拟数据出错 {e}")
+            print(f"Error occurred while selecting whether to use ST-deconv simulated data: {e}")
 
 
 
