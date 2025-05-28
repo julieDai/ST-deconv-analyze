@@ -10,65 +10,65 @@ def get_base_option_list():
 	if  dataset == 'MOB_CARD_simu':
 		option_list['dataset_name'] = 'MOB_CARD_simu'
 
-		# ---------------------数据预处理和训练测试数据集------------------------
+		# ---------------------Data preprocessing and training/testing dataset------------------------
 
-		# 数据模拟
-		option_list['bool_simu'] = 1 # bool值，[1：ST-deconv,0:其他数据模拟方法]
+	        # Data simulation
+	        option_list['bool_simu'] = 1  # Boolean value, [1: ST-deconv, 0: other simulation methods]
+	
+	        # Data simulation preprocessing
+	        option_list['dataset_dir'] = 'ST-deconv/data/MOB/trainset/'
+	        option_list['single_cell_dataset_name'] = 'single_cell/count.h5ad'  # Single-cell transcriptomic data
+	        option_list['single_cell_dataset_label'] = 'single_cell/cell_types_specific.csv'  # Cell type labels
+	        option_list['simu_sample_size'] = 10  # Number of single-cell samples per spatial transcriptomic spot
+	        option_list['simu_sample_num'] = 282  # Number of samples in the simulated spatial transcriptomic data
+	        option_list['ST-deconv_simu_process_dir'] = 'ST-deconv_simu_temp/'
+	        option_list['simu_data_dir'] = 'ST-deconv/data/MOB/trainset/Card_simu_data/31/'  # Simulated data path (non-ST-deconv)
+	        option_list['simu_expression'] = 'pseudo_data_31.csv'
+	        option_list['simu_label'] = 'pseudo_data_ratio_31.csv'
 
-		# 数据模拟预处理
-		option_list['dataset_dir']='ST-deconv/data/MOB/trainset/'
-		option_list['single_cell_dataset_name'] = 'single_cell/count.h5ad'		#单细胞转录组数据
-		option_list['single_cell_dataset_label'] = 'single_cell/cell_types_specific.csv' #单细胞转录组数据细胞类型标签
-		option_list['simu_sample_size'] = 10		# 每个空间转录组spot的单细胞数据量
-		option_list['simu_sample_num'] = 282	#与空间转录组数据的样本量*10
-		option_list['ST-deconv_simu_process_dir'] = 'ST-deconv_simu_temp/'
-		option_list['simu_data_dir'] = 'ST-deconv/data/MOB/trainset/Card_simu_data/31/'       # 外来的模拟数据的存储位置(生成的模拟数据的存储位置：'ST-deconv/data/trainset/ST-deconv_simu_temp/conjustion_data/')
-		option_list['simu_expression'] = 'pseudo_data_31.csv'
-		option_list['simu_label'] = 'pseudo_data_ratio_31.csv'
+	        # DAN preprocessing (real spatial transcriptomic data corresponding to simulated data)
+	        option_list['real_dataset_dir'] = 'ST-deconv/data/MOB/trainset/real_spatial_12.tsv'
+	
+	        # Incorporate spatial information: CL
+	        option_list['bool_cl'] = 1
+	
+	        # t-test parameters
+	        option_list['bool_ttest'] = 1
+	        option_list['p-vaule_ttest'] = ''
+	        option_list['ttest_genes_list_dir'] = 'ST-deconv/data/MOB/trainset/ttest/significant_genes_ttest_0.01.csv'
 
-        # DAN的数据预处理（模拟数据对应的真实空间转录组数据）
-		option_list['real_dataset_dir'] = 'ST-deconv/data/MOB/trainset/real_spatial_12.tsv'	#与单细胞转录组数据对应的空间转录组数据
-		
-		# 引入空间信息:CL
-		option_list['bool_cl'] = 1
-
-        # ttest的参数
-		option_list['bool_ttest'] = 1
-		option_list['p-vaule_ttest'] = ''
-		option_list['ttest_genes_list_dir'] = 'ST-deconv/data/MOB/trainset/ttest/significant_genes_ttest_0.01.csv'
-		
-        # -----------------------训练参数------------------------------------------
-		# 训练的轮次
+        # ----------------------- Training parameters------------------------------------------
+		# Total training epochs
 		option_list['AE_DAN_epoch'] = 60
 
-		# AE的训练参数
+		# AE training parameters
 		option_list['AE_batch_size'] = 32
 		option_list['AE_epochs'] =  30
 		option_list['AE_learning_rate'] = 0.0003
 
-		# DAN的训练参数
+		# DAN training parameters
 		option_list['bool_DAN'] = 1
 		option_list['DAN_batch_size'] = 32
 		option_list['DAN_epochs'] =  30
 		option_list['DAN_learning_rate'] = 0.0003
 
-		#-------------------------测试参数------------------------------
-		# 默认的测试数据位置
-		option_list['test_data_dir'] = 'ST-deconv/data/MOB/testset/'        # anndata格式的测试数据存放的位置(当文件夹写入本变量且后缀为.h5ad触法)
-		option_list['test_dataset_split'] = 0.1      # 分出的测试模拟数据的比例
-
-		# 是否使用其他来源的测试数据以及它的batch_size
-		option_list['other_test_dataset_bool'] = '0'       # (当不使用外来测试数据时为0)外来测试数据的bool值:例如只是用simu模拟（无其他来源模拟空转数据，使用st-simu空转数据时）
-		option_list['other_test_dataset_name'] = 'Card_simu_data/02/pseudo_data_02.csv'       # 外来测试数据
-		option_list['other_test_dataset_label_name'] = 'Card_simu_data/02/pseudo_data_ratio_02.csv'       # 外来测试数据
-		option_list['other_test_dataset_batch_size'] = 282
-
-		# 五则交叉验证参数
-		option_list['bool_fiveTest'] = 1 # 是否使用五折交叉验证
-		option_list['fiveTest_fold'] = 0 # 五折交叉验证此时的测试集
-
-		# Output parameter
-		option_list['SaveResultsDir'] = f'/data/ST-deconv/experiment/CL4.0/'
+		#-------------------------Testing parameters------------------------------
+	        # Default testing data path
+	        option_list['test_data_dir'] = 'ST-deconv/data/MOB/testset/'  # Path to AnnData formatted test data
+	        option_list['test_dataset_split'] = 0.1  # Proportion of simulated data used for testing
+	
+	        # Whether to use other external test datasets and batch size
+	        option_list['other_test_dataset_bool'] = '0'  # Boolean value for external test datasets
+	        option_list['other_test_dataset_name'] = 'Card_simu_data/02/pseudo_data_02.csv'
+	        option_list['other_test_dataset_label_name'] = 'Card_simu_data/02/pseudo_data_ratio_02.csv'
+	        option_list['other_test_dataset_batch_size'] = 282
+	
+	        # 5-fold cross-validation parameters
+	        option_list['bool_fiveTest'] = 1  # Whether to use 5-fold cross-validation
+	        option_list['fiveTest_fold'] = 0  # Index of the test fold
+	
+	        # Output parameter
+	        option_list['SaveResultsDir'] = f'/data/ST-deconv/experiment/CL4.0/'
 	return option_list
 
 overrides = [
@@ -156,13 +156,13 @@ overrides_train_dataset = []
 override = None
 overide_trainset = None
 def set_override_value(key, key_trainset):
-    global override, overrides_train_dataset  # 定义两个全局变量
+    global override, overrides_train_dataset  # Define two global variables
     for item in overrides:
         if item[0] == key:
             override = item
         elif item[0] == key_trainset:
             overrides_train_dataset = item
-            break  # 只有找到 key_trainset 时才终止循环
+            break  # Only terminate the loop when key_trainset is found
 
 
 def get_option_list(result_name):
